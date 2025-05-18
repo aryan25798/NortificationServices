@@ -1,5 +1,3 @@
-# app/consumer.py
-
 import asyncio
 import aio_pika
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -23,6 +21,9 @@ mongo_client = AsyncIOMotorClient(MONGO_URI)
 # Fallback: use 'notifications_db' if no default DB name is provided in URI
 db_name = mongo_client.get_default_database().name if mongo_client.get_default_database() is not None else "notifications_db"
 db = mongo_client[db_name]
+
+MAX_SEND_RETRIES = 3
+RETRY_DELAY_SECONDS = 2
 
 async def consume_notifications():
     connection = await aio_pika.connect_robust(RABBITMQ_URL)
@@ -58,15 +59,38 @@ async def consume_notifications():
                             print(f"[Error] Notification ID {notification_id} not found after retries.")
                             continue
 
-                        # Simulate sending
-                        print(f"[>>] Sending notification to user {doc['user_id']} with message: {doc['message']}")
+                        # Attempt to send the notification with retries
+                        send_success = False
+                        for send_attempt in range(1, MAX_SEND_RETRIES + 1):
+                            try:
+                                # Simulate sending (replace with real send logic)
+                                print(f"[>>] Sending notification to user {doc['user_id']} with message: {doc['message']}")
 
-                        # Update status to 'sent'
-                        await db.notifications.update_one(
-                            {"_id": ObjectId(notification_id)},
-                            {"$set": {"status": "sent"}}
-                        )
-                        print(f"[✓] Notification {notification_id} marked as sent.")
+                                # Here you can put actual send code, e.g., email, SMS, push, etc.
+                                # await send_notification_function(doc)
+
+                                send_success = True
+                                break  # Exit retry loop if successful
+
+                            except Exception as send_err:
+                                print(f"[Error] Send attempt {send_attempt} failed: {send_err}")
+                                if send_attempt < MAX_SEND_RETRIES:
+                                    print(f"Retrying in {RETRY_DELAY_SECONDS} seconds...")
+                                    await asyncio.sleep(RETRY_DELAY_SECONDS)
+
+                        # Update status based on send outcome
+                        if send_success:
+                            await db.notifications.update_one(
+                                {"_id": ObjectId(notification_id)},
+                                {"$set": {"status": "sent"}}
+                            )
+                            print(f"[✓] Notification {notification_id} marked as sent.")
+                        else:
+                            await db.notifications.update_one(
+                                {"_id": ObjectId(notification_id)},
+                                {"$set": {"status": "failed"}}
+                            )
+                            print(f"[✗] Notification {notification_id} marked as failed after retries.")
 
                     except Exception as e:
                         print(f"[Error] Failed to process message: {e}")
