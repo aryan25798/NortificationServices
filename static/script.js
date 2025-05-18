@@ -1,5 +1,5 @@
-const BASE_URL = window.location.hostname === "localhost"
-  ? "http://127.0.0.1:8000"
+const BASE_URL = window.location.hostname === "localhost" 
+  ? "http://127.0.0.1:8000" 
   : "https://web-production-66a2.up.railway.app";
 
 const notificationForm = document.getElementById("notificationForm");
@@ -13,7 +13,7 @@ const exportCsvBtn = document.getElementById("exportCsvBtn");
 const darkModeToggle = document.getElementById("darkModeToggle");
 const body = document.body;
 
-let notificationsData = [];
+let notificationsData = []; // Store fetched notifications for filtering/export
 
 function showToast(message, isError = false) {
   const toastContainer = document.getElementById("toastContainer");
@@ -52,7 +52,7 @@ function renderNotifications(notifs) {
     return;
   }
 
-  filtered.forEach((n, index) => {
+  filtered.forEach(n => {
     const col = document.createElement("div");
     col.className = "col-md-6";
 
@@ -67,7 +67,7 @@ function renderNotifications(notifs) {
 
     const header = document.createElement("h5");
     header.className = "card-title d-flex justify-content-between align-items-center";
-    header.innerHTML = `<span>${index + 1}. ${emoji} ${n.type.toUpperCase()}</span>`;
+    header.innerHTML = `<span>${emoji} ${n.type.toUpperCase()}</span>`;
 
     const toggleIcon = document.createElement("i");
     toggleIcon.className = "fas fa-chevron-down collapse-toggle";
@@ -91,7 +91,7 @@ function renderNotifications(notifs) {
     deleteBtn.className = "btn btn-sm btn-outline-danger mt-2";
     deleteBtn.setAttribute("aria-label", `Delete notification ${n.id}`);
     deleteBtn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete`;
-    deleteBtn.addEventListener("click", () => deleteNotification(n.id));
+    deleteBtn.addEventListener("click", () => deleteNotification(n._id));
 
     const p = document.createElement("p");
     p.appendChild(deleteBtn);
@@ -181,7 +181,8 @@ async function deleteNotification(id) {
 
     if (response.ok) {
       showToast("Notification deleted!");
-      notificationsData = notificationsData.filter(n => n.id !== id);
+      notificationsData = notificationsData.filter(n => n._id !== id);
+      notificationsData = notificationsData.map((n, index) => ({ ...n, id: index + 1 }));
       renderNotifications(notificationsData);
     } else {
       showToast("Failed to delete notification.", true);
@@ -209,9 +210,7 @@ notificationForm.addEventListener("submit", async (e) => {
       notificationForm.reset();
       launchConfetti();
     } else {
-      const data = await response.json();
-      const errorMsg = data.detail || "Failed to send notification.";
-      showToast(errorMsg, true);
+      showToast("Failed to send notification.", true);
     }
   } catch (err) {
     showToast("Network error: Could not send notification.", true);
@@ -220,6 +219,7 @@ notificationForm.addEventListener("submit", async (e) => {
 
 getNotificationsForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+
   const userId = document.getElementById("queryUserId").value;
   notificationsList.innerHTML = "";
 
@@ -227,7 +227,10 @@ getNotificationsForm.addEventListener("submit", async (e) => {
     const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
     if (response.ok) {
       const data = await response.json();
-      notificationsData = data;
+      notificationsData = data.map((n, index) => ({
+        ...n,
+        id: index + 1
+      }));
       filterType.value = "";
       filterStatus.value = "";
       renderNotifications(notificationsData);
