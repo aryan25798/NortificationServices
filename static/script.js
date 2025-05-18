@@ -13,7 +13,7 @@ const exportCsvBtn = document.getElementById("exportCsvBtn");
 const darkModeToggle = document.getElementById("darkModeToggle");
 const body = document.body;
 
-let notificationsData = []; // Store fetched notifications for filtering/export
+let notificationsData = [];
 
 function showToast(message, isError = false) {
   const toastContainer = document.getElementById("toastContainer");
@@ -36,6 +36,17 @@ function launchConfetti() {
     spread: 60,
     origin: { y: 0.6 }
   });
+}
+
+function escapeHtml(text) {
+  const map = {
+    '&': "&amp;",
+    '<': "&lt;",
+    '>': "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
 }
 
 function renderNotifications(notifs) {
@@ -116,17 +127,6 @@ function renderNotifications(notifs) {
   });
 }
 
-function escapeHtml(text) {
-  const map = {
-    '&': "&amp;",
-    '<': "&lt;",
-    '>': "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  };
-  return text.replace(/[&<>"']/g, m => map[m]);
-}
-
 function setDarkMode(isDark) {
   if (isDark) {
     body.classList.add("dark-mode");
@@ -149,6 +149,7 @@ function exportToCSV(data) {
     showToast("No notifications to export", true);
     return;
   }
+
   const headers = ["ID", "Type", "Message", "Status", "Created At"];
   const csvRows = [
     headers.join(","),
@@ -156,6 +157,7 @@ function exportToCSV(data) {
       `"${n._id}","${n.type}","${n.message.replace(/"/g, '""')}","${n.status}","${new Date(n.created_at).toLocaleString()}"`
     )
   ];
+
   const csvString = csvRows.join("\n");
   const blob = new Blob([csvString], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
@@ -191,6 +193,22 @@ async function deleteNotification(id) {
   }
 }
 
+// ✅ NEW: Fetch user notifications
+async function getNotifications(userId) {
+  try {
+    const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
+    if (response.ok) {
+      const data = await response.json();
+      notificationsData = data;
+      filterType.value = "";
+      filterStatus.value = "";
+      renderNotifications(notificationsData);
+    }
+  } catch (err) {
+    showToast("Error refreshing notifications.", true);
+  }
+}
+
 notificationForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const userId = document.getElementById("userId").value;
@@ -208,6 +226,9 @@ notificationForm.addEventListener("submit", async (e) => {
       showToast("Notification sent!");
       notificationForm.reset();
       launchConfetti();
+
+      // ✅ Auto-refresh after 3 seconds to update 'pending' → 'sent'
+      setTimeout(() => getNotifications(userId), 3000);
     } else {
       const errText = await response.text();
       showToast("Failed to send notification: " + errText, true);
@@ -219,26 +240,12 @@ notificationForm.addEventListener("submit", async (e) => {
 
 getNotificationsForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-
   const userId = document.getElementById("queryUserId").value;
   notificationsList.innerHTML = "";
 
-  try {
-    const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
-    if (response.ok) {
-      const data = await response.json();
-      notificationsData = data;
-      filterType.value = "";
-      filterStatus.value = "";
-      renderNotifications(notificationsData);
-      showToast("Notifications fetched!");
-      launchConfetti();
-    } else {
-      showToast("Failed to fetch notifications.", true);
-    }
-  } catch (err) {
-    showToast("Network error: Could not fetch notifications.", true);
-  }
+  await getNotifications(userId);
+  showToast("Notifications fetched!");
+  launchConfetti();
 });
 
 filterType.addEventListener("change", () => renderNotifications(notificationsData));
