@@ -1,4 +1,6 @@
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = window.location.hostname === "localhost" 
+  ? "http://127.0.0.1:8000" 
+  : "https://web-production-66a2.up.railway.app";
 
 const notificationForm = document.getElementById("notificationForm");
 const getNotificationsForm = document.getElementById("getNotificationsForm");
@@ -89,7 +91,6 @@ function renderNotifications(notifs) {
     deleteBtn.className = "btn btn-sm btn-outline-danger mt-2";
     deleteBtn.setAttribute("aria-label", `Delete notification ${n.id}`);
     deleteBtn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete`;
-    // Use the original _id for deletion:
     deleteBtn.addEventListener("click", () => deleteNotification(n._id));
 
     const p = document.createElement("p");
@@ -180,9 +181,7 @@ async function deleteNotification(id) {
 
     if (response.ok) {
       showToast("Notification deleted!");
-      // Filter out by _id now:
       notificationsData = notificationsData.filter(n => n._id !== id);
-      // Reassign numeric ids after deletion
       notificationsData = notificationsData.map((n, index) => ({ ...n, id: index + 1 }));
       renderNotifications(notificationsData);
     } else {
@@ -228,7 +227,6 @@ getNotificationsForm.addEventListener("submit", async (e) => {
     const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
     if (response.ok) {
       const data = await response.json();
-      // Add numeric id for display but keep original _id for deletion
       notificationsData = data.map((n, index) => ({
         ...n,
         id: index + 1
