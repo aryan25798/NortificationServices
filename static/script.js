@@ -84,14 +84,14 @@ function renderNotifications(notifs) {
       <p class="card-text"><strong>Message:</strong> ${escapeHtml(n.message)}</p>
       <p class="card-text"><strong>Status:</strong> ${escapeHtml(n.status)}</p>
       <p class="card-text text-muted"><i class="fas fa-clock"></i> ${new Date(n.created_at).toLocaleString()}</p>
-      <span class="badge bg-secondary">ID: ${n.id}</span>
+      <span class="badge bg-secondary">ID: ${n._id}</span>
     `;
 
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "btn btn-sm btn-outline-danger mt-2";
-    deleteBtn.setAttribute("aria-label", `Delete notification ${n.id}`);
+    deleteBtn.setAttribute("aria-label", `Delete notification ${n._id}`);
     deleteBtn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete`;
-    deleteBtn.addEventListener("click", () => deleteNotification(n.id));
+    deleteBtn.addEventListener("click", () => deleteNotification(n._id));
 
     const p = document.createElement("p");
     p.appendChild(deleteBtn);
@@ -153,7 +153,7 @@ function exportToCSV(data) {
   const csvRows = [
     headers.join(","),
     ...data.map(n =>
-      `"${n.id}","${n.type}","${n.message.replace(/"/g, '""')}","${n.status}","${new Date(n.created_at).toLocaleString()}"`
+      `"${n._id}","${n.type}","${n.message.replace(/"/g, '""')}","${n.status}","${new Date(n.created_at).toLocaleString()}"`
     )
   ];
   const csvString = csvRows.join("\n");
@@ -181,7 +181,7 @@ async function deleteNotification(id) {
 
     if (response.ok) {
       showToast("Notification deleted!");
-      notificationsData = notificationsData.filter(n => n.id !== id);
+      notificationsData = notificationsData.filter(n => n._id !== id);
       renderNotifications(notificationsData);
     } else {
       showToast("Failed to delete notification.", true);
@@ -209,7 +209,8 @@ notificationForm.addEventListener("submit", async (e) => {
       notificationForm.reset();
       launchConfetti();
     } else {
-      showToast("Failed to send notification.", true);
+      const errText = await response.text();
+      showToast("Failed to send notification: " + errText, true);
     }
   } catch (err) {
     showToast("Network error: Could not send notification.", true);
@@ -226,7 +227,7 @@ getNotificationsForm.addEventListener("submit", async (e) => {
     const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
     if (response.ok) {
       const data = await response.json();
-      notificationsData = data; // Do not modify id!
+      notificationsData = data;
       filterType.value = "";
       filterStatus.value = "";
       renderNotifications(notificationsData);
