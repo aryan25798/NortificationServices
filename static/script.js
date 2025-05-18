@@ -1,3 +1,5 @@
+const BASE_URL = "http://127.0.0.1:8000";
+
 const notificationForm = document.getElementById("notificationForm");
 const getNotificationsForm = document.getElementById("getNotificationsForm");
 const notificationsList = document.getElementById("notificationsList");
@@ -172,7 +174,7 @@ async function deleteNotification(id) {
   if (!confirm("Are you sure you want to delete this notification?")) return;
 
   try {
-    const response = await fetch(`/notifications/${id}`, {
+    const response = await fetch(`${BASE_URL}/notifications/${id}`, {
       method: "DELETE"
     });
 
@@ -198,7 +200,7 @@ notificationForm.addEventListener("submit", async (e) => {
   const message = document.getElementById("message").value;
 
   try {
-    const response = await fetch(`/notifications`, {
+    const response = await fetch(`${BASE_URL}/notifications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: parseInt(userId), type, message })
@@ -223,7 +225,7 @@ getNotificationsForm.addEventListener("submit", async (e) => {
   notificationsList.innerHTML = "";
 
   try {
-    const response = await fetch(`/users/${userId}/notifications`);
+    const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
     if (response.ok) {
       const data = await response.json();
       // Add numeric id for display but keep original _id for deletion

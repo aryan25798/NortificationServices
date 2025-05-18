@@ -106,26 +106,22 @@
 
     <div class="form-section">
       <h4 class="mb-3">📤 Send Notification</h4>
-      <form id="notificationForm" novalidate>
+      <form id="notificationForm">
         <div class="mb-3">
           <label for="userId" class="form-label">User ID</label>
-          <input type="number" class="form-control" id="userId" required min="1" />
-          <div class="invalid-feedback">Please enter a valid User ID.</div>
+          <input type="number" class="form-control" id="userId" required />
         </div>
         <div class="mb-3">
           <label for="type" class="form-label">Type</label>
           <select class="form-control" id="type" required>
-            <option value="" disabled selected>Select notification type</option>
             <option value="email">📧 Email</option>
             <option value="sms">📱 SMS</option>
             <option value="in-app">💬 In-App</option>
           </select>
-          <div class="invalid-feedback">Please select a notification type.</div>
         </div>
         <div class="mb-3">
           <label for="message" class="form-label">Message</label>
           <textarea class="form-control" id="message" rows="3" required></textarea>
-          <div class="invalid-feedback">Please enter a message.</div>
         </div>
         <button type="submit" class="btn btn-primary w-100">🚀 Send Notification</button>
       </form>
@@ -151,11 +147,10 @@
         </button>
       </div>
 
-      <form id="getNotificationsForm" class="mb-3" novalidate>
+      <form id="getNotificationsForm" class="mb-3">
         <div class="input-group">
-          <input type="number" class="form-control" id="queryUserId" placeholder="Enter User ID" required min="1" />
+          <input type="number" class="form-control" id="queryUserId" placeholder="Enter User ID" required />
           <button type="submit" class="btn btn-success">🔎 Fetch</button>
-          <div class="invalid-feedback">Please enter a valid User ID.</div>
         </div>
       </form>
 
