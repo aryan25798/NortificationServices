@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Notification Service</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(-45deg, #4a90e2, #50e3c2, #9013fe, #f5a623);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-x: hidden;
+      transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    body.dark-mode {
+      background: #121212;
+      color: #eee;
+    }
+    @keyframes gradientBG {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+    .container { max-width: 700px; }
+    .form-section {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 1rem;
+      padding: 2rem 2.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+      transition: transform 0.3s ease, background-color 0.5s ease, color 0.5s ease;
+    }
+    body.dark-mode .form-section {
+      background: #222;
+      color: #eee;
+      box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+    }
+    .form-section:hover {
+      transform: scale(1.01);
+    }
+    h2, h4 {
+      text-shadow: 1px 1px 4px rgba(0,0,0,0.15);
+    }
+    body.dark-mode h2, body.dark-mode h4 {
+      text-shadow: 1px 1px 4px rgba(255,255,255,0.15);
+    }
+    .btn { transition: transform 0.2s ease; }
+    .btn:hover { transform: scale(1.05); }
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      min-width: 200px;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    .confetti { pointer-events: none; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .collapse-toggle {
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.3s ease;
+    }
+    .collapse-toggle.collapsed {
+      transform: rotate(-90deg);
+    }
+    #filters {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    #filters select {
+      flex-grow: 1;
+      min-width: 140px;
+    }
+    #darkModeToggle {
+      cursor: pointer;
+      font-size: 1.5rem;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 10000;
+      color: #fff;
+      transition: color 0.3s ease;
+    }
+    body.dark-mode #darkModeToggle {
+      color: #f5a623;
+    }
+  </style>
+</head>
+<body class="p-4">
+  <div id="darkModeToggle" title="Toggle Light/Dark Mode"><i class="fas fa-moon"></i></div>
+  <div class="container">
+    <h2 class="mb-4 text-white text-center">
+      <i class="fas fa-bell"></i> Notification Service 🎉
+    </h2>
+
+    <div class="form-section">
+      <h4 class="mb-3">📤 Send Notification</h4>
+      <form id="notificationForm" novalidate>
+        <div class="mb-3">
+          <label for="userId" class="form-label">User ID</label>
+          <input type="number" class="form-control" id="userId" required min="1" />
+          <div class="invalid-feedback">Please enter a valid User ID.</div>
+        </div>
+        <div class="mb-3">
+          <label for="type" class="form-label">Type</label>
+          <select class="form-control" id="type" required>
+            <option value="" disabled selected>Select notification type</option>
+            <option value="email">📧 Email</option>
+            <option value="sms">📱 SMS</option>
+            <option value="in-app">💬 In-App</option>
+          </select>
+          <div class="invalid-feedback">Please select a notification type.</div>
+        </div>
+        <div class="mb-3">
+          <label for="message" class="form-label">Message</label>
+          <textarea class="form-control" id="message" rows="3" required></textarea>
+          <div class="invalid-feedback">Please enter a message.</div>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">🚀 Send Notification</button>
+      </form>
+    </div>
+
+    <div class="form-section">
+      <h4 class="mb-3">🔍 Get User Notifications</h4>
+      <div id="filters" class="mb-3">
+        <select id="filterType" class="form-select">
+          <option value="">📦 All Types</option>
+          <option value="email">📧 Email</option>
+          <option value="sms">📱 SMS</option>
+          <option value="in-app">💬 In-App</option>
+        </select>
+        <select id="filterStatus" class="form-select">
+          <option value="">🔄 All Statuses</option>
+          <option value="sent">✅ Sent</option>
+          <option value="pending">⌛ Pending</option>
+          <option value="failed">❌ Failed</option>
+        </select>
+        <button id="exportCsvBtn" class="btn btn-outline-secondary">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </button>
+      </div>
+
+      <form id="getNotificationsForm" class="mb-3" novalidate>
+        <div class="input-group">
+          <input type="number" class="form-control" id="queryUserId" placeholder="Enter User ID" required min="1" />
+          <button type="submit" class="btn btn-success">🔎 Fetch</button>
+          <div class="invalid-feedback">Please enter a valid User ID.</div>
+        </div>
+      </form>
+
+      <div id="notificationsList" class="row g-3"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toastContainer" class="toast align-items-center text-white bg-success border-0 d-none" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMessage"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="hideToast()"></button>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas" class="confetti"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="/static/script.js"></script>
+</body>
+</html>

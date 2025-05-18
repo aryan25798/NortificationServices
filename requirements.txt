@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+aio_pika
+python-dotenv
+pydantic
+psycopg2-binary
+aio-pika
+motor
+pydantic
