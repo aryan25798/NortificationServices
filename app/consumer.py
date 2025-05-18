@@ -20,7 +20,6 @@ if not MONGO_URI:
 
 # Connect to MongoDB
 mongo_client = AsyncIOMotorClient(MONGO_URI)
-# Fallback: use 'notifications_db' if no default DB name is provided in URI
 db_name = mongo_client.get_default_database().name if mongo_client.get_default_database() is not None else "notifications_db"
 db = mongo_client[db_name]
 
@@ -35,41 +34,51 @@ async def consume_notifications():
         async with queue.iterator() as queue_iter:
             async for message in queue_iter:
                 async with message.process():
-                    try:
-                        payload = json.loads(message.body.decode())
-                        notification_id = payload.get("id")
+                    max_processing_attempts = 3  # Retry whole message block up to 3 times
+                    for attempt in range(1, max_processing_attempts + 1):
+                        try:
+                            payload = json.loads(message.body.decode())
+                            notification_id = payload.get("id")
 
-                        if not notification_id:
-                            print("[Error] Missing 'id' in message payload.")
-                            continue
-
-                        print(f"[Queue] Received notification ID: {notification_id}")
-
-                        # Retry fetching the document in case it's not yet available
-                        max_retries = 5
-                        doc = None
-                        for attempt in range(max_retries):
-                            doc = await db.notifications.find_one({"_id": ObjectId(notification_id)})
-                            if doc:
+                            if not notification_id:
+                                print("[Error] Missing 'id' in message payload.")
                                 break
-                            await asyncio.sleep(1.0)  # Wait before retry
 
-                        if not doc:
-                            print(f"[Error] Notification ID {notification_id} not found after retries.")
-                            continue
+                            print(f"[Queue] Received notification ID: {notification_id}")
 
-                        # Simulate sending
-                        print(f"[>>] Sending notification to user {doc['user_id']} with message: {doc['message']}")
+                            # Retry fetching the document if it's not yet available
+                            max_doc_retries = 5
+                            doc = None
+                            for doc_attempt in range(1, max_doc_retries + 1):
+                                doc = await db.notifications.find_one({"_id": ObjectId(notification_id)})
+                                if doc:
+                                    break
+                                print(f"[Retry {doc_attempt}] Notification not found yet. Retrying...")
+                                await asyncio.sleep(1.0)
 
-                        # Update status to 'sent'
-                        await db.notifications.update_one(
-                            {"_id": ObjectId(notification_id)},
-                            {"$set": {"status": "sent"}}
-                        )
-                        print(f"[✓] Notification {notification_id} marked as sent.")
+                            if not doc:
+                                print(f"[Error] Notification ID {notification_id} not found after {max_doc_retries} retries.")
+                                break
 
-                    except Exception as e:
-                        print(f"[Error] Failed to process message: {e}")
+                            # Simulate sending the notification
+                            print(f"[>>] Sending notification to user {doc['user_id']} with message: {doc['message']}")
+
+                            # Update status to 'sent'
+                            await db.notifications.update_one(
+                                {"_id": ObjectId(notification_id)},
+                                {"$set": {"status": "sent"}}
+                            )
+                            print(f"[✓] Notification {notification_id} marked as sent.")
+                            break  # Success: exit retry loop
+
+                        except Exception as e:
+                            print(f"[Attempt {attempt}] Error processing message: {e}")
+                            if attempt == max_processing_attempts:
+                                print("[Error] Max retries reached for message. Skipping.")
+                            else:
+                                backoff = 2 ** attempt
+                                print(f"[Retrying in {backoff}s]")
+                                await asyncio.sleep(backoff)
 
 if __name__ == "__main__":
     asyncio.run(consume_notifications())
