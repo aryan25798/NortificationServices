@@ -12,7 +12,19 @@ A simple, beginner-friendly notification system supporting **Email**, **SMS**, a
 - 🔁 **Retry Failed Notifications**
 - 🗂 **In-App Notifications** stored in MongoDB (MongoDB Atlas)
 - 🟢 **Real-time Background Processing** using FastAPI
-- ☁️ **Deployable on [Railway](https://railway.app)**
+- ☁️ **Deployable on [Railway](https://web-production-66a2.up.railway.app/)**
+
+
+
+  # 🌐 Frontend Features
+
+- 📤 **Submit new notifications**
+- 🔍 **Fetch notifications by user ID**
+- 🎨 **Dark mode toggle**
+- 🔄 **Auto-update status** (`pending → sent`)
+- 📄 **Export to CSV**
+- 🧹 **Delete notifications**
+- 🎉 **Confetti on successful submission**
 
 ---
 
@@ -38,9 +50,6 @@ cd NotificationServices
 
 
 Create a Virtual Environment
-bash
-Copy
-Edit
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
@@ -56,14 +65,6 @@ uvicorn app.main:app --reload
 
 
 
-## 🌐 Frontend Features
 
-- 📤 **Submit new notifications**
-- 🔍 **Fetch notifications by user ID**
-- 🎨 **Dark mode toggle**
-- 🔄 **Auto-update status** (`pending → sent`)
-- 📄 **Export to CSV**
-- 🧹 **Delete notifications**
-- 🎉 **Confetti on successful submission**
 
 
