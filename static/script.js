@@ -1,5 +1,5 @@
-const BASE_URL = window.location.hostname === "localhost" 
-  ? "http://127.0.0.1:8000" 
+const BASE_URL = window.location.hostname === "localhost"
+  ? "http://127.0.0.1:8000"
   : "https://web-production-66a2.up.railway.app";
 
 const notificationForm = document.getElementById("notificationForm");
@@ -13,7 +13,7 @@ const exportCsvBtn = document.getElementById("exportCsvBtn");
 const darkModeToggle = document.getElementById("darkModeToggle");
 const body = document.body;
 
-let notificationsData = []; // Store fetched notifications for filtering/export
+let notificationsData = [];
 
 function showToast(message, isError = false) {
   const toastContainer = document.getElementById("toastContainer");
@@ -67,7 +67,6 @@ function renderNotifications(notifs) {
 
     const header = document.createElement("h5");
     header.className = "card-title d-flex justify-content-between align-items-center";
-    // Show index visually but keep n.id for real id
     header.innerHTML = `<span>${index + 1}. ${emoji} ${n.type.toUpperCase()}</span>`;
 
     const toggleIcon = document.createElement("i");
@@ -92,7 +91,6 @@ function renderNotifications(notifs) {
     deleteBtn.className = "btn btn-sm btn-outline-danger mt-2";
     deleteBtn.setAttribute("aria-label", `Delete notification ${n.id}`);
     deleteBtn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete`;
-    // Use n.id here, NOT n._id
     deleteBtn.addEventListener("click", () => deleteNotification(n.id));
 
     const p = document.createElement("p");
@@ -183,7 +181,6 @@ async function deleteNotification(id) {
 
     if (response.ok) {
       showToast("Notification deleted!");
-      // Filter by real id
       notificationsData = notificationsData.filter(n => n.id !== id);
       renderNotifications(notificationsData);
     } else {
@@ -212,7 +209,9 @@ notificationForm.addEventListener("submit", async (e) => {
       notificationForm.reset();
       launchConfetti();
     } else {
-      showToast("Failed to send notification.", true);
+      const data = await response.json();
+      const errorMsg = data.detail || "Failed to send notification.";
+      showToast(errorMsg, true);
     }
   } catch (err) {
     showToast("Network error: Could not send notification.", true);
@@ -221,7 +220,6 @@ notificationForm.addEventListener("submit", async (e) => {
 
 getNotificationsForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-
   const userId = document.getElementById("queryUserId").value;
   notificationsList.innerHTML = "";
 
@@ -229,7 +227,6 @@ getNotificationsForm.addEventListener("submit", async (e) => {
     const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
     if (response.ok) {
       const data = await response.json();
-      // Keep backend IDs intact — no mapping
       notificationsData = data;
       filterType.value = "";
       filterStatus.value = "";
