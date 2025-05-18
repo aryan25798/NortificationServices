@@ -10,10 +10,10 @@ import asyncio
 router = APIRouter()
 
 # Background task to simulate delivery
-async def simulate_delivery_and_mark_sent(db: AsyncIOMotorDatabase, mongo_id: str):
+async def simulate_delivery_and_mark_sent(db: AsyncIOMotorDatabase, notification_id: str):
     await asyncio.sleep(1)
     await db.notifications.update_one(
-        {"_id": ObjectId(mongo_id)},
+        {"_id": ObjectId(notification_id)},
         {"$set": {"status": "sent"}}
     )
 
@@ -27,25 +27,18 @@ async def send_notification(
     if not is_valid_notification_type(notification.type):
         raise HTTPException(status_code=400, detail="Invalid notification type")
 
-    # Extract frontend ID from request, store as custom_id in Mongo
-    doc = notification.dict()
-    frontend_id = doc.pop("id")  # remove 'id' and keep separately
-    doc["custom_id"] = frontend_id
-    doc["status"] = "pending"
-
+    doc = {**notification.dict(), "status": "pending"}
     result = await db.notifications.insert_one(doc)
+    doc["_id"] = result.inserted_id
 
-    # Publish using frontend id
-    await rabbitmq.publish_notification({"id": frontend_id})
-
-    # Run background task using Mongo internal _id
+    await rabbitmq.publish_notification({"id": str(result.inserted_id)})
     background_tasks.add_task(simulate_delivery_and_mark_sent, db, str(result.inserted_id))
 
     return schemas.NotificationResponse(
-        id=frontend_id,
+        id=str(doc["_id"]),
         user_id=doc["user_id"],
         type=doc["type"],
-        message=doc["message"],
+        message=doc["message"],  # changed from content
         status=doc["status"]
     )
 
@@ -56,15 +49,15 @@ async def get_user_notifications(user_id: int, db: AsyncIOMotorDatabase = Depend
     results = await cursor.to_list(length=100)
     return [
         schemas.NotificationResponse(
-            id=doc.get("custom_id", str(doc["_id"])),
+            id=str(doc["_id"]),
             user_id=doc["user_id"],
             type=doc["type"],
-            message=doc["message"],
+            message=doc["message"],  # changed from content
             status=doc["status"]
         ) for doc in results
     ]
 
-# Delete a notification with validation by MongoDB internal _id
+# Delete a notification with validation
 @router.delete("/notifications/{notification_id}")
 async def delete_notification(notification_id: str, db: AsyncIOMotorDatabase = Depends(get_mongo_db)):
     try:
