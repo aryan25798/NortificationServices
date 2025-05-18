@@ -91,7 +91,7 @@ function renderNotifications(notifs) {
     deleteBtn.className = "btn btn-sm btn-outline-danger mt-2";
     deleteBtn.setAttribute("aria-label", `Delete notification ${n.id}`);
     deleteBtn.innerHTML = `<i class="fas fa-trash-alt"></i> Delete`;
-    deleteBtn.addEventListener("click", () => deleteNotification(n._id));
+    deleteBtn.addEventListener("click", () => deleteNotification(n.id));
 
     const p = document.createElement("p");
     p.appendChild(deleteBtn);
@@ -181,8 +181,7 @@ async function deleteNotification(id) {
 
     if (response.ok) {
       showToast("Notification deleted!");
-      notificationsData = notificationsData.filter(n => n._id !== id);
-      notificationsData = notificationsData.map((n, index) => ({ ...n, id: index + 1 }));
+      notificationsData = notificationsData.filter(n => n.id !== id);
       renderNotifications(notificationsData);
     } else {
       showToast("Failed to delete notification.", true);
@@ -227,10 +226,7 @@ getNotificationsForm.addEventListener("submit", async (e) => {
     const response = await fetch(`${BASE_URL}/users/${userId}/notifications`);
     if (response.ok) {
       const data = await response.json();
-      notificationsData = data.map((n, index) => ({
-        ...n,
-        id: index + 1
-      }));
+      notificationsData = data; // Do not modify id!
       filterType.value = "";
       filterStatus.value = "";
       renderNotifications(notificationsData);
