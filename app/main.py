@@ -10,9 +10,13 @@ from app.notifier import process_notifications
 
 app = FastAPI(title="Notification Service")
 
-# Static directory path - assuming 'static' folder is in the same directory as main.py
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-static_dir = os.path.join(BASE_DIR, "static")
+# BASE_DIR points to root directory (parent of 'app' folder)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # /project-root/app
+ROOT_DIR = os.path.dirname(BASE_DIR)  # /project-root
+static_dir = os.path.join(ROOT_DIR, "static")
+
+if not os.path.exists(static_dir):
+    raise RuntimeError(f"Static directory not found: {static_dir}")
 
 # Enable CORS - update allow_origins to your deployed frontend URL on Railway
 app.add_middleware(
